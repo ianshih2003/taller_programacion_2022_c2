@@ -1,9 +1,9 @@
-use std::{env, fs};
+use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let tablero_dir = &args[1];
-    let contents = fs::read_to_string(tablero_dir).expect("Error al leer archivo");
-    println!("{}", contents);
+    let tablero_dir: &str = &args[1];
+
+    busca_minas::run(tablero_dir)
 }
