@@ -1,3 +1,4 @@
+pub mod buscaminas;
 use std::env;
 
 fn main() {
@@ -5,5 +6,5 @@ fn main() {
 
     let tablero_dir: &str = &args[1];
 
-    busca_minas::run(tablero_dir)
+    buscaminas::run(tablero_dir)
 }
