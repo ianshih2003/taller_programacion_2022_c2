@@ -1,8 +1,6 @@
-use busca_minas::Tablero;
-
 #[cfg(test)]
-mod tests {
-    use super::*;
+mod integration_tests {
+    use busca_minas::tablero::Tablero;
 
     fn verificar_representacion_con_tablero_resuelto(representacion: String, resultado_esperado: String) {
         let tablero = Tablero::crear_de_string(&representacion);
