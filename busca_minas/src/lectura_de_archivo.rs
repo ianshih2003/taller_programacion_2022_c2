@@ -1,3 +1,5 @@
+//! Modulo lectura de archivos
+
 use std::fs;
 
 /// Lee el archivo que corresponde al directorio y lo devuelve como String

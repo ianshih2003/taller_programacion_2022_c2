@@ -1,3 +1,5 @@
+//! Modulo de tablero de buscaminas
+
 const BOMBA_UTF: u8 = 42;
 const ESPACIO_UTF: u8 = 46;
 
