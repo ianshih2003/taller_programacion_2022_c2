@@ -5,11 +5,13 @@ const ESPACIO_UTF: u8 = 46;
 
 /// Posibles valores de una casilla
 pub enum Casilla {
+    /// Representacion en string: "*"
     Bomba,
+    /// Representacion en string: "."
     Espacio,
 }
 
-// Representacion del tablero del buscaminas
+/// Representacion del tablero del buscaminas
 pub struct Tablero {
     /// Matriz de casillas
     pub casillas: Vec<Vec<Casilla>>,
@@ -31,7 +33,7 @@ impl Tablero {
         }
     }
 
-    /// Construye un tablero dado un string que lo representa, donde . = Casilla y * = Bomba.
+    /// Construye un tablero dado un string que lo representa.
     pub fn crear_de_string(archivo: &String) -> Tablero {
         let mut vec_tablero: Vec<Vec<Casilla>> = Vec::new();
         let mut casillas: Vec<Casilla> = Vec::new();
@@ -43,6 +45,9 @@ impl Tablero {
         let mut cant_col: usize = 0;
 
         for fila in filas {
+            if fila.len() == 0 {
+                continue;
+            }
             for casilla in fila.as_bytes() {
                 match *casilla {
                     BOMBA_UTF => casillas.push(Casilla::Bomba),
@@ -96,41 +101,21 @@ impl Tablero {
     ) -> Vec<(usize, usize)> {
         let mut posiciones: Vec<(usize, usize)> = Vec::new();
 
-        if pos_fila > 0 {
-            posiciones.push((pos_fila - 1, pos_col))
-        }
+        let lower_limit = if pos_fila > 0 { -1 } else { 0 };
+        let upper_limit = if pos_fila < self.filas - 1 { 2 } else { 1 };
+        let lower_limit_col = if pos_col > 0 { -1 } else { 0 };
+        let upper_limit_col = if pos_col < self.columnas - 1 { 2 } else { 1 };
 
-        if pos_fila < self.filas - 1 {
-            posiciones.push((pos_fila + 1, pos_col))
+        for dx in lower_limit..upper_limit {
+            for dy in lower_limit_col..upper_limit_col {
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                posiciones.push(((pos_fila as i32 + dx) as usize, (pos_col as i32 + dy) as usize))
+            }
         }
-
-        if pos_col > 0 {
-            posiciones.push((pos_fila, pos_col - 1))
-        }
-
-        if pos_col < self.columnas - 1 {
-            posiciones.push((pos_fila, pos_col + 1))
-        }
-
-        if pos_fila > 0 && pos_col > 0 {
-            posiciones.push((pos_fila - 1, pos_col - 1))
-        }
-
-        if pos_fila < self.filas - 1 && pos_col < self.columnas - 1 {
-            posiciones.push((pos_fila + 1, pos_col + 1))
-        }
-
-        if pos_fila > 0 && pos_col < self.columnas - 1 {
-            posiciones.push((pos_fila - 1, pos_col + 1))
-        }
-
-        if pos_col > 0 && pos_fila < self.filas - 1 {
-            posiciones.push((pos_fila + 1, pos_col - 1))
-        }
-
         posiciones
     }
-
     /// Devuelve la cantidad de bombas cercanas de una posicion del tablero
     pub fn cantidad_de_bombas(&self, pos_fila: usize, pos_col: usize) -> usize {
         let mut cantidad: usize = 0;
