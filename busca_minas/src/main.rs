@@ -1,10 +1,14 @@
-pub mod buscaminas;
 use std::env;
+use busca_minas;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let tablero_dir: &str = &args[1];
+    if args.len() == 1 {
+        println!("Error: Agregue directorio")
+    } else {
+        let tablero_dir: &str = &args[1];
 
-    buscaminas::run(tablero_dir)
+        busca_minas::run(tablero_dir)
+    }
 }
