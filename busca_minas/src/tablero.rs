@@ -36,7 +36,6 @@ impl Tablero {
         let mut vec_tablero: Vec<Vec<Casilla>> = Vec::new();
         let mut casillas: Vec<Casilla> = Vec::new();
 
-
         let filas = archivo.split("\n");
 
         let mut cant_filas: usize = 0;
@@ -109,7 +108,10 @@ impl Tablero {
                 if dx == 0 && dy == 0 {
                     continue;
                 }
-                posiciones.push(((pos_fila as i32 + dx) as usize, (pos_col as i32 + dy) as usize))
+                posiciones.push((
+                    (pos_fila as i32 + dx) as usize,
+                    (pos_col as i32 + dy) as usize,
+                ))
             }
         }
         posiciones

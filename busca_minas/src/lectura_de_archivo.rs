@@ -4,7 +4,7 @@ use std::fs;
 pub fn leer_archivo(path: &str) -> String {
     match fs::read_to_string(path) {
         Ok(val) => val,
-        Err(_) => String::from("Error en lectura de archivo")
+        Err(_) => String::from("Error en lectura de archivo"),
     }
 }
 

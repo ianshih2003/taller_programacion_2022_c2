@@ -1,5 +1,5 @@
-pub mod tablero;
 pub mod lectura_de_archivo;
+pub mod tablero;
 
 use crate::lectura_de_archivo::leer_archivo;
 use crate::tablero::Tablero;
@@ -13,4 +13,3 @@ pub fn run(path: &str) {
 
     tablero.imprimir_tablero_resuelto();
 }
-

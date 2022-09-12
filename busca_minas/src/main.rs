@@ -1,5 +1,5 @@
-use std::env;
 use busca_minas;
+use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
