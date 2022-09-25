@@ -1,7 +1,13 @@
 //! Modulo de tablero de buscaminas
 
+use crate::BuscaminasError::{self, ErrorDeParseo};
+
 const BOMBA_UTF: u8 = 42;
 const ESPACIO_UTF: u8 = 46;
+
+const AVANZA: i32 = 1;
+const NO_MUEVE: i32 = 0;
+const RETROCEDE: i32 = -1;
 
 /// Posibles valores de una casilla
 pub enum Casilla {
@@ -15,84 +21,166 @@ pub enum Casilla {
 pub struct Tablero {
     /// Matriz de casillas
     pub casillas: Vec<Vec<Casilla>>,
-
-    /// Cantidad de filas
-    pub filas: usize,
-
-    /// Cantidad de columnas
-    pub columnas: usize,
 }
 
-impl Tablero {
-    /// Construye un tablero
-    fn new(casillas: Vec<Vec<Casilla>>, filas: usize, columnas: usize) -> Tablero {
-        Tablero {
-            casillas,
-            filas,
-            columnas,
-        }
-    }
+impl TryFrom<&String> for Tablero {
+    /// Tipo de error devuelto en caso de que falle la conversion
+    type Error = BuscaminasError;
 
-    /// Construye un tablero dado un string que lo representa.
-    pub fn crear_de_string(archivo: &String) -> Tablero {
-        let mut vec_tablero: Vec<Vec<Casilla>> = Vec::new();
+    /// Devuelve un tablero dado una referencia a un str que lo representa.
+    ///
+    /// # Argumentos
+    /// * `tablero` - String que representa un tablero, solo puede contener * (Bombas) o . (Casillas)
+    ///
+    /// # Errores
+    /// Lanza un `ErrorDeParseo` si:
+    /// * Hay un caracter invalido dentro del string
+    /// * Hay filas de distintos tamaños
+    ///
+    /// # Ejemplos
+    /// ```
+    /// use busca_minas::tablero::Tablero;
+    /// use busca_minas::BuscaminasError;
+    ///
+    /// fn main() -> Result<(), BuscaminasError> {
+    ///     let representacion: String = String::from(".....\n.....\n");
+    ///     let tablero: Tablero = Tablero::try_from(&representacion)?;
+    ///
+    ///     assert_eq!(tablero.filas(), 2);
+    ///     Ok(())
+    /// }
+    /// ```
+    fn try_from(tablero: &String) -> Result<Self, Self::Error> {
+        let mut filas: Vec<Vec<Casilla>> = Vec::new();
         let mut casillas: Vec<Casilla> = Vec::new();
 
-        let filas = archivo.split("\n");
-
-        let mut cant_filas: usize = 0;
-        let mut cant_col: usize = 0;
-
-        for fila in filas {
-            if fila.len() == 0 {
+        for linea in tablero.split(NUEVA_LINEA) {
+            if linea.is_empty() {
                 continue;
             }
-            for casilla in fila.as_bytes() {
+            for casilla in linea.as_bytes() {
                 match *casilla {
                     BOMBA_UTF => casillas.push(Casilla::Bomba),
                     ESPACIO_UTF => casillas.push(Casilla::Espacio),
-                    _ => continue,
+                    _ => {
+                        return Err(ErrorDeParseo(String::from(
+                            "Caracteres invalidos dentro del archivo",
+                        )))
+                    }
                 }
             }
-            cant_filas += 1;
-            cant_col = fila.len();
-            vec_tablero.push(casillas);
+            filas.push(casillas);
             casillas = Vec::new()
         }
 
-        vec_tablero.push(casillas);
+        if !filas.is_empty() && !Tablero::filas_de_mismo_tam(&filas) {
+            return Err(ErrorDeParseo(String::from(
+                "No pueden haber filas de distinto tamaño",
+            )));
+        }
 
-        Tablero::new(vec_tablero, cant_filas, cant_col)
+        Ok(Tablero::new(filas))
+    }
+}
+
+const BOMBA: &str = "*";
+const CASILLA: &str = ".";
+const NUEVA_LINEA: &str = "\n";
+
+impl Tablero {
+    /// Devuelve un tablero a partir de una matriz de Casillas
+    fn new(casillas: Vec<Vec<Casilla>>) -> Tablero {
+        Tablero { casillas }
     }
 
-    /// Imprime el tablero, reemplazando las casillas por la cantidad de bombas cercanas
-    /// y devuelve la representacion en String
-    pub fn imprimir_tablero_resuelto(&self) -> String {
+    /// Devuelve la cantidad de filas del tablero
+    ///
+    /// # Ejemplos
+    /// ```
+    /// use busca_minas::tablero::Tablero;
+    /// use busca_minas::BuscaminasError;
+    ///
+    /// fn main() -> Result<(), BuscaminasError> {
+    ///     let representacion: String = String::from(".....\n.....\n.....\n");
+    ///     let tablero: Tablero = Tablero::try_from(&representacion)?;
+    ///
+    ///     assert_eq!(tablero.filas(), 3);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn filas(&self) -> usize {
+        self.casillas.len()
+    }
+
+    /// Devuelve la cantidad de colunas del tablero
+    /// Precondicion: La matriz debe contener al menos una fila
+    ///
+    /// # Ejemplos
+    /// ```
+    /// use busca_minas::tablero::Tablero;
+    /// use busca_minas::BuscaminasError;
+    ///
+    /// fn main() -> Result<(), BuscaminasError> {
+    ///     let representacion: String = String::from(".....\n.....\n.....\n");
+    ///     let tablero: Tablero = Tablero::try_from(&representacion)?;
+    ///
+    ///     assert_eq!(tablero.columnas(), 5);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn columnas(&self) -> usize {
+        self.casillas[0].len()
+    }
+
+    /// Devuelve un String que representa al tablero resuelto
+    ///
+    /// # Ejemplos
+    ///
+    /// ```
+    /// use busca_minas::tablero::Tablero;
+    /// use busca_minas::BuscaminasError;
+    ///
+    /// fn main() -> Result<(), BuscaminasError> {
+    ///     let representacion: String = String::from(".*.*.\n..*..\n..*..\n.....\n");
+    ///     let tablero = Tablero::try_from(&representacion)?;
+    ///
+    ///     assert_eq!(tablero.resolver(), "1*3*1\n13*31\n.2*2.\n.111.\n");
+    ///     Ok(())
+    /// }
+    ///
+    /// ```
+    pub fn resolver(&self) -> String {
         let mut resultado: String = String::new();
         for (i, fila) in self.casillas.iter().enumerate() {
             for (j, casilla) in fila.iter().enumerate() {
                 match casilla {
-                    Casilla::Bomba => resultado += "*",
+                    Casilla::Bomba => resultado += BOMBA,
                     Casilla::Espacio => {
                         let cant = self.cantidad_de_bombas(i, j);
-
                         if cant == 0 {
-                            resultado += "."
+                            resultado += CASILLA
                         } else {
                             resultado += format!("{cant}").as_str();
                         }
                     }
                 }
             }
-            if i < self.filas {
-                resultado += "\n";
+            if i < self.filas() {
+                resultado += NUEVA_LINEA;
             }
         }
-        print!("{}", resultado);
         resultado
     }
 
     /// Devuelve las posiciones adyacentes de una posicion del tablero
+    ///
+    /// # Argumentos
+    /// `pos_fila`: Numero de fila dentro del tablero
+    ///             Precondicion: La posicion tiene que ser mayor o igual que 0 y menor que la cantidad de filas del tablero
+    /// `pos_col`: Numero de columna dentro del tablero
+    ///             Precondicion: La posicion tiene que ser mayor o igual que 0 y menor que la cantidad de columnas del tablero
+    /// Importante:
+    /// Las primera posicion es la posicion 0
     fn construir_posiciones_adyacentes(
         &self,
         pos_fila: usize,
@@ -100,13 +188,21 @@ impl Tablero {
     ) -> Vec<(usize, usize)> {
         let mut posiciones: Vec<(usize, usize)> = Vec::new();
 
-        let lower_limit = if pos_fila > 0 { -1 } else { 0 };
-        let upper_limit = if pos_fila < self.filas - 1 { 2 } else { 1 };
-        let lower_limit_col = if pos_col > 0 { -1 } else { 0 };
-        let upper_limit_col = if pos_col < self.columnas - 1 { 2 } else { 1 };
+        let limite_inf = if pos_fila > 0 { RETROCEDE } else { NO_MUEVE };
+        let limite_sup = if pos_fila < self.filas() - 1 {
+            AVANZA
+        } else {
+            NO_MUEVE
+        };
+        let limite_inf_col = if pos_col > 0 { RETROCEDE } else { 0 };
+        let limite_sup_col = if pos_col < self.columnas() - 1 {
+            AVANZA
+        } else {
+            NO_MUEVE
+        };
 
-        for dx in lower_limit..upper_limit {
-            for dy in lower_limit_col..upper_limit_col {
+        for dx in limite_inf..(limite_sup + 1) {
+            for dy in limite_inf_col..(limite_sup_col + 1) {
                 if dx == 0 && dy == 0 {
                     continue;
                 }
@@ -118,7 +214,16 @@ impl Tablero {
         }
         posiciones
     }
+
     /// Devuelve la cantidad de bombas cercanas de una posicion del tablero
+    ///
+    /// # Argumentos
+    /// `pos_fila`: Numero de fila dentro del tablero
+    ///             Precondicion: La posicion tiene que ser mayor o igual que 0 y menor que la cantidad de filas del tablero
+    /// `pos_col`: Numero de columna dentro del tablero
+    ///             Precondicion: La posicion tiene que ser mayor o igual que 0 y menor que la cantidad de columnas del tablero
+    /// Importante:
+    /// Las primera posicion es la posicion 0
     fn cantidad_de_bombas(&self, pos_fila: usize, pos_col: usize) -> usize {
         let mut cantidad: usize = 0;
 
@@ -130,53 +235,70 @@ impl Tablero {
                 _ => continue,
             }
         }
-        return cantidad;
+        cantidad
+    }
+
+    /// Verifica que una matriz tenga la misma cantidad de elementos en una fila
+    ///
+    /// # Argumentos
+    /// `tablero` - Una matriz de casillas
+    ///             Precondicion: Tiene que ser una matriz de al menos 1 fila
+    ///
+    fn filas_de_mismo_tam(tablero: &[Vec<Casilla>]) -> bool {
+        let fila_len = (*tablero[0]).len();
+        tablero.iter().all(|fila| fila.len() == fila_len)
     }
 }
 
 #[cfg(test)]
 mod unit_tests {
-    use crate::tablero::Tablero;
+    use crate::{tablero::Tablero, BuscaminasError};
 
-    fn construir_tablero(str: &str) -> Tablero {
-        Tablero::crear_de_string(&String::from(str))
+    fn construir_tablero(str: &str) -> Result<Tablero, BuscaminasError> {
+        Tablero::try_from(&String::from(str))
     }
 
-    fn verificar_cant_bombas(fila: usize, col: usize, cant_bombas: usize, tablero: &Tablero) {
-        assert_eq!(cant_bombas, tablero.cantidad_de_bombas(fila, col))
+    fn verificar_cant_bombas(
+        fila: usize,
+        col: usize,
+        cant_bombas: usize,
+        tablero: &Tablero,
+    ) -> Result<(), BuscaminasError> {
+        assert_eq!(cant_bombas, tablero.cantidad_de_bombas(fila, col));
+        Ok(())
     }
 
     #[test]
-    fn cantidad_de_bombas_valida() {
-        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....");
+    fn cantidad_de_bombas_valida() -> Result<(), BuscaminasError> {
+        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....")?;
 
         verificar_cant_bombas(1, 1, 3, &tablero)
     }
 
     #[test]
-    fn cantidad_de_bombas_valida_en_posicion_extrema_izquierda() {
-        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....\n");
+    fn cantidad_de_bombas_valida_en_posicion_extrema_izquierda() -> Result<(), BuscaminasError> {
+        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....\n")?;
 
         verificar_cant_bombas(0, 0, 1, &tablero)
     }
 
     #[test]
-    fn cantidad_de_bombas_valida_en_posicion_extrema_derecha() {
-        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....\n");
+    fn cantidad_de_bombas_valida_en_posicion_extrema_derecha() -> Result<(), BuscaminasError> {
+        let tablero = construir_tablero(".*.*.\n..*..\n..*..\n.....\n")?;
 
         verificar_cant_bombas(3, 4, 0, &tablero)
     }
 
     #[test]
-    fn cantidad_de_bombas_valida_en_tablero_vacio() {
-        let tablero = construir_tablero(".....\n.....\n.....\n.....\n");
+    fn cantidad_de_bombas_valida_en_tablero_vacio() -> Result<(), BuscaminasError> {
+        let tablero = construir_tablero(".....\n.....\n.....\n.....\n")?;
 
         verificar_cant_bombas(2, 1, 0, &tablero)
     }
 
     #[test]
-    fn cantidad_bombas_valida_en_tablero_lleno() {
-        let tablero = construir_tablero("*****\n**.**\n*****\n");
+    fn cantidad_bombas_valida_en_tablero_lleno() -> Result<(), BuscaminasError> {
+        let tablero = construir_tablero("*****\n**.**\n*****\n")?;
 
         verificar_cant_bombas(1, 2, 8, &tablero)
     }
